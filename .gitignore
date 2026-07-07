@@ -1,0 +1,40 @@
+# macOS
+.DS_Store
+
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.eggs/
+build/
+dist/
+.venv/
+venv/
+env/
+.mypy_cache/
+.pytest_cache/
+.ruff_cache/
+
+# uv / pip
+uv.lock
+
+# dartr-tools runtime state
+.dartr-tools/
+work/
+
+# Local data / analysis outputs (never commit)
+data/
+outputs/
+*.vcf
+*.vcf.gz
+*.bed
+*.bim
+*.fam
+*.RDS
+
+# Editor / IDE
+.idea/
+.vscode/
+
+# Obsidian
+.obsidian/
