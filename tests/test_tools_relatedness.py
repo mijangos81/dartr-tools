@@ -5,6 +5,8 @@ from dartr_tools import sandbox
 
 _HAVE = shutil.which("Rscript") is not None and (Path.home()/"programs"/"EM_IBD_P").exists()
 real = pytest.mark.skipif(not _HAVE, reason="Rscript or EM_IBD_P not available")
+_HAVE_RSCRIPT = shutil.which("Rscript") is not None
+dry_capable = pytest.mark.skipif(not _HAVE_RSCRIPT, reason="Rscript not available")
 
 def _cells(path):
     with open(path) as fh:
@@ -43,3 +45,10 @@ def test_relatedness_rejects_path_escape(monkeypatch, tmp_path):
     monkeypatch.setenv("DARTR_WORK_ROOT", str(tmp_path/"work"))
     with pytest.raises(sandbox.SandboxError):
         relatedness.run_relatedness("s", "../evil.rds")
+
+@dry_capable
+def test_relatedness_dry_run(monkeypatch, tmp_path, tiny_vcf, tiny_meta):
+    _prep(monkeypatch, tmp_path, tiny_vcf, tiny_meta)
+    out = relatedness.run_relatedness("s", "gl.rds", dry_run=True)
+    assert out["outputs"] == [] and "dry_run" in out
+    assert not (tmp_path / "s" / "relatedness.csv").exists()
