@@ -1,0 +1,69 @@
+# src/dartr_tools/r/runner.R  — fixed-dispatch dartRverse runner (no eval)
+suppressWarnings(suppressMessages({
+  library(jsonlite); library(dartRverse)
+}))
+args <- commandArgs(trailingOnly = TRUE)
+req  <- jsonlite::fromJSON(args[[1]], simplifyVector = TRUE)
+fn   <- req$fn
+p    <- req$params
+outdir <- req$workdir
+
+# dartRverse internals (gl.compliance.check, utils.recalc.maf, gl.recalc.metrics, ...)
+# write progress text to stdout via cat()/print() even when verbose = 0 is passed.
+# Divert stdout to a throwaway sink for the duration of the call so that only the
+# final JSON (emitted after sink() is lifted) reaches the parent process's stdout.
+.rbridge_sink <- file(tempfile("rbridge-sink-"), open = "wt")
+sink(.rbridge_sink)
+
+emit <- function(outputs) {
+  sink()                 # restore real stdout
+  close(.rbridge_sink)
+  # I() (AsIs) forces `outputs` to serialize as a JSON array even when it has
+  # length 1 — plain auto_unbox = TRUE would otherwise collapse a single-output
+  # branch (e.g. gl.read.vcf) down to a bare JSON string instead of ["gl.rds"].
+  cat(jsonlite::toJSON(list(outputs = I(outputs)), auto_unbox = TRUE))
+}
+
+if (fn == "gl.read.vcf") {
+  gl <- if (!is.null(p$metafile)) gl.read.vcf(p$vcf, ind.metafile = p$metafile, verbose = 0) else gl.read.vcf(p$vcf, verbose = 0)
+  out <- file.path(outdir, p$out); saveRDS(gl, out); emit(c(p$out))
+
+} else if (fn == "gl.filter") {                       # generic filter chain, fixed ops only
+  gl <- readRDS(p$rds)
+  if (!is.null(p$callrate)) gl <- gl.filter.callrate(gl, threshold = p$callrate, verbose = 0)
+  if (!is.null(p$maf))      gl <- gl.filter.maf(gl, threshold = p$maf, verbose = 0)
+  if (!is.null(p$rdepth))   gl <- gl.filter.rdepth(gl, lower = p$rdepth, verbose = 0)
+  if (isTRUE(p$monomorphs)) gl <- gl.filter.monomorphs(gl, verbose = 0)
+  out <- file.path(outdir, p$out); saveRDS(gl, out); emit(c(p$out))
+
+} else if (fn == "gl2plink") {
+  gl <- readRDS(p$rds); gl2plink(gl, outfile = p$out, outpath = outdir, verbose = 0)
+  emit(c(paste0(p$out, ".ped"), paste0(p$out, ".map")))
+
+} else if (fn == "gl2vcf") {
+  gl <- readRDS(p$rds); gl2vcf(gl, outfile = p$out, outpath = outdir, plink.bin.path = p$plink_path, verbose = 0)
+  emit(c(paste0(p$out, ".vcf")))
+
+} else if (fn == "gl.report.heterozygosity") {
+  gl <- readRDS(p$rds); res <- gl.report.heterozygosity(gl, verbose = 0)
+  out <- file.path(outdir, p$out); write.csv(res, out, row.names = FALSE); emit(c(p$out))
+
+} else if (fn == "gl.fst.pop") {
+  gl <- readRDS(p$rds); res <- gl.fst.pop(gl, verbose = 0)
+  out <- file.path(outdir, p$out); saveRDS(res, out); emit(c(p$out))
+
+} else if (fn == "gl.pcoa") {
+  gl <- readRDS(p$rds); pc <- gl.pcoa(gl, verbose = 0)
+  co <- file.path(outdir, p$out_coords); saveRDS(pc, co)
+  pl <- file.path(outdir, p$out_plot)
+  ggplot2::ggsave(pl, gl.pcoa.plot(pc, gl, verbose = 0), width = 7, height = 6)
+  emit(c(p$out_coords, p$out_plot))
+
+} else if (fn == "gl.LDNe") {
+  gl <- readRDS(p$rds)
+  res <- gl.LDNe(gl, outfile = p$out, outpath = outdir, neest.path = p$neest_path, verbose = 0)
+  out <- file.path(outdir, "ne.rds"); saveRDS(res, out); emit(c("ne.rds"))
+
+} else {
+  stop(paste("function not allowed:", fn))
+}
