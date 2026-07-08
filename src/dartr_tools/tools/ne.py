@@ -16,5 +16,5 @@ def estimate_ne(session_id: str, rds: str) -> dict:
         neest_path = ""  # let dartRverse fall back to its own discovery
     params = {"rds": str(rin), "out": "ne", "neest_path": neest_path}
     res = call_gl("gl.LDNe", params, wd)
-    record(wd, "estimate_ne", {"rds": str(rin)}, [rin], [wd / o for o in res["outputs"]], 0)
+    record(wd, "estimate_ne", {"rds": str(rin), "neest_path": neest_path}, [rin], [wd / o for o in res["outputs"]], 0)
     return res
