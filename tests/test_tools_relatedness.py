@@ -1,6 +1,7 @@
-import stat, textwrap
+import stat, pytest
 from pathlib import Path
 from dartr_tools.tools import relatedness
+from dartr_tools import sandbox
 
 def test_relatedness_local(monkeypatch, tmp_path):
     prog = tmp_path / "prog"; prog.mkdir()
@@ -14,3 +15,8 @@ def test_relatedness_local(monkeypatch, tmp_path):
         (wd / f"in.{ext}").write_text("x\n")
     out = relatedness.run_relatedness("s", "in")
     assert (wd / "relatedness.out").is_file()
+
+def test_relatedness_rejects_path_escape(monkeypatch, tmp_path):
+    monkeypatch.setenv("DARTR_WORK_ROOT", str(tmp_path / "work"))
+    with pytest.raises(sandbox.SandboxError):
+        relatedness.run_relatedness("s", "../evil")
