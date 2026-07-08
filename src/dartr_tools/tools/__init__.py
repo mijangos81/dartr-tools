@@ -1,4 +1,4 @@
-from . import io, filter as _filter, report, admixture
+from . import io, filter as _filter, report, admixture, relatedness
 
 def register_all(mcp) -> None:
     mcp.tool()(io.read_vcf)
@@ -8,3 +8,4 @@ def register_all(mcp) -> None:
     mcp.tool()(report.report_fst)
     mcp.tool()(report.pcoa)
     mcp.tool()(admixture.run_admixture)
+    mcp.tool()(relatedness.run_relatedness)
