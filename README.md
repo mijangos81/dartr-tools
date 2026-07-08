@@ -8,7 +8,11 @@ See [SPEC.md](SPEC.md) for the full design (architecture, v1 tool catalog, execu
 
 ## Status
 
-Design stage. No implementation yet — the next step is an implementation plan derived from the spec.
+**v1 implementation complete** on branch `feat/v1-implementation`: all 9 tools are implemented with full test coverage. Ready for agent registration.
+
+**See [docs/registration.md](docs/registration.md) for Claude Code / opencode registration instructions.**
+
+**Caveats:** `run_relatedness` now runs the real EMIBD9 via `gl.run.EMIBD9` (dartR.captive) and is validated against the fixture (deterministic 12×12 relatedness matrix, diagonal 0.5). The one remaining deferred item is the luism01 remote-execution path for `run_admixture` — implemented and validated by construction (its roundtrip test skips without VM access) and needing a live-environment shakeout in production.
 
 ## What it will do (v1)
 
