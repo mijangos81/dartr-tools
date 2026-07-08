@@ -31,3 +31,19 @@ def run_local(argv: list[str], cwd: Path, timeout: int | None = None, dry_run: b
     if p.returncode != 0:
         raise ExecError(res)
     return res
+
+def run_remote(argv, remote_cwd, host, stage_in, stage_out_dir, timeout=None, dry_run=False):
+    remote_cmd = f"mkdir -p {shlex.quote(remote_cwd)} && cd {shlex.quote(remote_cwd)} && " + \
+                 " ".join(shlex.quote(a) for a in argv)
+    ssh = ["ssh", host, remote_cmd]
+    if dry_run:
+        return Result(ssh, 0, " ".join(shlex.quote(a) for a in ssh), "", 0.0)
+    start = time.monotonic()
+    for f in stage_in:
+        subprocess.run(["rsync", "-az", str(f), f"{host}:{remote_cwd}/"], check=True, env=_scrubbed_env())
+    p = subprocess.run(ssh, env=_scrubbed_env(), capture_output=True, text=True, timeout=timeout)
+    subprocess.run(["rsync", "-az", f"{host}:{remote_cwd}/", str(stage_out_dir) + "/"], env=_scrubbed_env())
+    res = Result(ssh, p.returncode, p.stdout, p.stderr, time.monotonic() - start)
+    if p.returncode != 0:
+        raise ExecError(res)
+    return res
