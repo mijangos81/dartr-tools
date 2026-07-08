@@ -1,6 +1,7 @@
 import os, stat, textwrap, pytest
 from pathlib import Path
 from dartr_tools.tools import admixture
+from dartr_tools import sandbox
 
 def _stub(progdir: Path):
     b = progdir / "admixture"
@@ -23,3 +24,8 @@ def test_admixture_local(monkeypatch, tmp_path):
         (wd / f"in.{ext}").write_text("snp1\nsnp2\n")   # 2-line .bim => 2 SNPs
     out = admixture.run_admixture("s", plink="in", k_min=2, k_max=3)
     assert set(out["cv"]) == {2, 3} and out["cv"][2] == 0.42
+
+def test_admixture_rejects_path_escape(monkeypatch, tmp_path):
+    monkeypatch.setenv("DARTR_WORK_ROOT", str(tmp_path / "work"))
+    with pytest.raises(sandbox.SandboxError):
+        admixture.run_admixture("s", plink="../evil", k_min=2, k_max=2)
