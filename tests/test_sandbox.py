@@ -39,3 +39,17 @@ def test_bounded():
     assert sandbox.bounded(5, 1, 20, "K") == 5
     with pytest.raises(sandbox.SandboxError):
         sandbox.bounded(0, 1, 20, "K")
+
+def test_rejects_directory_symlink_escape(wd, tmp_path):
+    outside_dir = tmp_path.parent / "outside_dir"
+    outside_dir.mkdir(exist_ok=True)
+    link = wd / "linkdir"
+    os.symlink(outside_dir, link)
+    with pytest.raises(sandbox.SandboxError):
+        sandbox.resolve_input("linkdir/x.vcf", wd)
+
+def test_symlink_loop_raises_sandbox_error(wd):
+    loop_path = wd / "loop"
+    os.symlink(loop_path, loop_path)
+    with pytest.raises(sandbox.SandboxError):
+        sandbox.resolve_input("loop", wd)
