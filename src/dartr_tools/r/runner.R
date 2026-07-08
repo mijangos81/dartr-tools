@@ -2,6 +2,7 @@
 suppressWarnings(suppressMessages({
   library(jsonlite); library(dartRverse)
 }))
+suppressWarnings(suppressMessages(library(dartR.captive)))
 args <- commandArgs(trailingOnly = TRUE)
 req  <- jsonlite::fromJSON(args[[1]], simplifyVector = TRUE)
 fn   <- req$fn
@@ -72,6 +73,14 @@ if (fn == "gl.read.vcf") {
   gl <- readRDS(p$rds)
   res <- gl.LDNe(gl, outfile = p$out, outpath = outdir, neest.path = p$neest_path, verbose = 0)
   out <- file.path(outdir, "ne.rds"); saveRDS(res, out); emit(c("ne.rds"))
+
+} else if (fn == "gl.run.EMIBD9") {
+  gl  <- readRDS(p$rds)
+  res <- gl.run.EMIBD9(gl, emibd9.path = p$emibd9_path, plot.out = FALSE,
+                       ISeed = p$iseed, Inbreed = isTRUE(p$inbreed), verbose = 0)
+  out <- file.path(outdir, "relatedness.csv")
+  write.csv(res$rel, out)
+  emit(c("relatedness.csv"))
 
 } else {
   stop(paste("function not allowed:", fn))

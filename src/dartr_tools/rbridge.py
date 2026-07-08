@@ -3,7 +3,8 @@ from pathlib import Path
 from . import executor
 
 ALLOW = {"gl.read.vcf", "gl.filter", "gl2plink", "gl2vcf",
-         "gl.report.heterozygosity", "gl.fst.pop", "gl.pcoa", "gl.LDNe"}
+         "gl.report.heterozygosity", "gl.fst.pop", "gl.pcoa", "gl.LDNe",
+         "gl.run.EMIBD9"}
 _RUNNER = Path(__file__).parent / "r" / "runner.R"
 
 def call_gl(fn: str, params: dict, workdir: Path, timeout: int | None = None, dry_run: bool = False) -> dict:
