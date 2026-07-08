@@ -16,12 +16,19 @@ outdir <- req$workdir
 sink(.rbridge_sink)
 
 emit <- function(outputs) {
-  sink()                 # restore real stdout
+  sink()                 # restore real stdout (chatter no longer matters — see below)
   close(.rbridge_sink)
   # I() (AsIs) forces `outputs` to serialize as a JSON array even when it has
   # length 1 — plain auto_unbox = TRUE would otherwise collapse a single-output
   # branch (e.g. gl.read.vcf) down to a bare JSON string instead of ["gl.rds"].
-  cat(jsonlite::toJSON(list(outputs = I(outputs)), auto_unbox = TRUE))
+  # Written to a response FILE, not stdout: some wrapped calls (gl.LDNe) shell
+  # out to a child process (NeEstimator/Ne2-1M) that writes progress text to
+  # the runner's own fd 1. R's sink() above only redirects R-level output, not
+  # a child process's inherited stdout fd, so that chatter would otherwise land
+  # on stdout and corrupt JSON parsed from there. The response file sidesteps
+  # this entirely — the caller (rbridge.call_gl) reads it instead of stdout.
+  writeLines(jsonlite::toJSON(list(outputs = I(outputs)), auto_unbox = TRUE),
+             file.path(outdir, "_rresp.json"))
 }
 
 if (fn == "gl.read.vcf") {

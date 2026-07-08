@@ -15,4 +15,9 @@ def call_gl(fn: str, params: dict, workdir: Path, timeout: int | None = None, dr
     res = executor.run_local(["Rscript", str(_RUNNER), str(reqfile)], cwd=workdir, timeout=timeout, dry_run=dry_run)
     if dry_run:
         return {"outputs": [], "dry_run": res.stdout}
-    return json.loads(res.stdout)
+    respfile = workdir / "_rresp.json"
+    if not respfile.is_file():
+        raise RuntimeError(
+            f"R runner did not produce a response file ({respfile}); stderr:\n{res.stderr}"
+        )
+    return json.loads(respfile.read_text())
