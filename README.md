@@ -12,7 +12,7 @@ See [SPEC.md](SPEC.md) for the full design (architecture, v1 tool catalog, execu
 
 **See [docs/registration.md](docs/registration.md) for Claude Code / opencode registration instructions.**
 
-**Caveats:** The luism01 remote execution path is implemented and validated by construction (its roundtrip test is skipped without VM access), and the EMIBD9 CLI argument wrapper is tested in isolation — both need a live-environment shakeout in production.
+**Caveats:** `run_relatedness` now runs the real EMIBD9 via `gl.run.EMIBD9` (dartR.captive) and is validated against the fixture (deterministic 12×12 relatedness matrix, diagonal 0.5). The one remaining deferred item is the luism01 remote-execution path for `run_admixture` — implemented and validated by construction (its roundtrip test skips without VM access) and needing a live-environment shakeout in production.
 
 ## What it will do (v1)
 
