@@ -8,7 +8,7 @@ See [SPEC.md](SPEC.md) for the full design (architecture, v1 tool catalog, execu
 
 ## Status
 
-**v1 implementation complete** on branch `feat/v1-implementation`: all 9 tools are implemented with full test coverage. Ready for agent registration.
+**v1 merged to `main`** (PR #1): all 9 tools are implemented with full test coverage (51 pass / 1 skipped). Ready for agent registration.
 
 **See [docs/registration.md](docs/registration.md) for Claude Code / opencode registration instructions.**
 
