@@ -8,7 +8,11 @@ See [SPEC.md](SPEC.md) for the full design (architecture, v1 tool catalog, execu
 
 ## Status
 
-Design stage. No implementation yet — the next step is an implementation plan derived from the spec.
+**v1 implementation complete** on branch `feat/v1-implementation`: all 9 tools are implemented with full test coverage. Ready for agent registration.
+
+**See [docs/registration.md](docs/registration.md) for Claude Code / opencode registration instructions.**
+
+**Caveats:** The luism01 remote execution path is implemented and validated by construction (its roundtrip test is skipped without VM access), and the EMIBD9 CLI argument wrapper is tested in isolation — both need a live-environment shakeout in production.
 
 ## What it will do (v1)
 
