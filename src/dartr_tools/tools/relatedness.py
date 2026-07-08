@@ -1,50 +1,24 @@
-import os
 from ..session import workdir
 from ..sandbox import resolve_input
-from ..registry import resolve
 from ..config import settings
-from ..executor import run_local, run_remote
+from ..rbridge import call_gl
 from ..provenance import record
 
-def run_relatedness(session_id: str, plink: str, heavy: bool = False,
-                    snp_threshold: int = 200_000, dry_run: bool = False) -> dict:
-    """Estimate pairwise relatedness (EMIBD9) on a PLINK bfile prefix.
+def run_relatedness(session_id: str, rds: str, iseed: int = 42, inbreed: bool = False,
+                    dry_run: bool = False) -> dict:
+    """Estimate pairwise relatedness with EMIBD9 (Wang 2022) via gl.run.EMIBD9 (dartR.captive).
 
-    EXPERIMENTAL: the EMIBD9 (`EM_IBD_P`) command-line arguments are not yet
-    verified against the real binary (stub-tested only).
+    Input is a genlight RDS; returns a square pairwise relatedness matrix as `relatedness.csv`
+    (deterministic given `iseed`). Note: EMIBD9 truncates individual IDs to 20 characters and
+    forbids spaces / '/', so keep sample IDs short and unique.
     """
-    if os.sep in plink or "/" in plink:
-        raise ValueError(f"plink prefix must be a bare name, got {plink!r}")
     wd = workdir(session_id)
-    # Sandbox-validate all three PLINK files (bed, bim, fam) so a path escape
-    # via .bim/.fam can't bypass resolve_input's root check.
-    bed = resolve_input(f"{plink}.bed", wd)
-    bim = resolve_input(f"{plink}.bim", wd)
-    fam = resolve_input(f"{plink}.fam", wd)
-    with bim.open() as fh:
-        nsnp = sum(1 for _ in fh)
-    # Always resolve the local binary: it's required for the local branch, and
-    # doubles as an availability check even though the remote branch uses its
-    # own copy on luism01's PATH (see below).
-    binary = resolve("emibd9")
-    remote = heavy or nsnp > snp_threshold
-    if remote:
-        # run_remote executes on luism01 (Linux): stage_in rsyncs the local
-        # absolute files into remote_cwd by basename, and the macOS binary
-        # resolved above can't run there — so the remote argv must use the
-        # bare binary name (resolved on the remote PATH) and basename inputs
-        # relative to remote_cwd, not the local absolute paths.
-        argv = ["EM_IBD_P", "--bfile", plink]
-        r = run_remote(argv, remote_cwd=f"/mnt/local/output/{session_id}", host=settings().luism01_host,
-                       stage_in=[bed, bim, fam],
-                       stage_out_dir=wd, timeout=settings().remote_timeout, dry_run=dry_run)
-    else:
-        # run_local executes on this machine, so absolute local paths are correct.
-        argv = [str(binary), "--bfile", str(wd / plink)]
-        r = run_local(argv, cwd=wd, timeout=settings().local_timeout, dry_run=dry_run)
+    rin = resolve_input(rds, wd)
+    params = {"rds": str(rin), "emibd9_path": str(settings().programs_dir),
+              "iseed": iseed, "inbreed": inbreed}
+    res = call_gl("gl.run.EMIBD9", params, wd, dry_run=dry_run)
     if dry_run:
-        return {"dry_run": [r.stdout], "outputs": []}
-    outputs = ["relatedness.out"]
-    record(wd, "run_relatedness", {"plink": plink, "heavy": heavy, "remote": remote},
-           [bed, bim, fam], [wd / o for o in outputs], 0)
-    return {"outputs": outputs}
+        return res
+    record(wd, "run_relatedness", {"rds": str(rin), "iseed": iseed, "inbreed": inbreed},
+           [rin], [wd / o for o in res["outputs"]], 0)
+    return res
