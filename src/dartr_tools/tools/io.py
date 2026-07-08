@@ -4,7 +4,8 @@ from ..rbridge import call_gl
 from ..provenance import record
 from ..config import settings
 
-def read_vcf(session_id: str, vcf: str, metafile: str | None = None, out: str = "gl.rds") -> dict:
+def read_vcf(session_id: str, vcf: str, metafile: str | None = None, out: str = "gl.rds",
+            dry_run: bool = False) -> dict:
     """Load a VCF into a dartRverse genlight object (saved as .RDS).
 
     `metafile` (optional) assigns individuals to populations via
@@ -21,11 +22,13 @@ def read_vcf(session_id: str, vcf: str, metafile: str | None = None, out: str = 
         min_ = resolve_input(metafile, wd)
         params["metafile"] = str(min_)
         inputs.append(min_)
-    res = call_gl("gl.read.vcf", params, wd)
+    res = call_gl("gl.read.vcf", params, wd, dry_run=dry_run)
+    if dry_run:
+        return res
     record(wd, "read_vcf", params, inputs, [wd / out], 0)
     return res
 
-def convert(session_id: str, rds: str, fmt: str, out: str) -> dict:
+def convert(session_id: str, rds: str, fmt: str, out: str, dry_run: bool = False) -> dict:
     """Convert a genlight RDS to PLINK ('plink') or VCF ('vcf').
 
     The PLINK binary path is sourced server-side from `config.settings()` —
@@ -41,6 +44,8 @@ def convert(session_id: str, rds: str, fmt: str, out: str) -> dict:
     params = {"rds": str(rin), "out": out}
     if fmt == "vcf":
         params["plink_path"] = str(settings().programs_dir)
-    res = call_gl(fn, params, wd)
+    res = call_gl(fn, params, wd, dry_run=dry_run)
+    if dry_run:
+        return res
     record(wd, "convert", {"rds": str(rin), "fmt": fmt, "out": out}, [rin], [wd / o for o in res["outputs"]], 0)
     return res

@@ -5,7 +5,7 @@ from ..config import settings
 from ..executor import run_local, run_remote
 from ..provenance import record
 
-def run_relatedness(session_id: str, plink: str, heavy: bool = False) -> dict:
+def run_relatedness(session_id: str, plink: str, heavy: bool = False, dry_run: bool = False) -> dict:
     """Estimate pairwise relatedness (EMIBD9) on a PLINK bfile prefix."""
     wd = workdir(session_id)
     # Sandbox-validate all three PLINK files (bed, bim, fam) so a path escape
@@ -26,11 +26,13 @@ def run_relatedness(session_id: str, plink: str, heavy: bool = False) -> dict:
         argv = ["EM_IBD_P", "--bfile", plink]
         r = run_remote(argv, remote_cwd=f"/mnt/local/output/{session_id}", host=settings().luism01_host,
                        stage_in=[bed, bim, fam],
-                       stage_out_dir=wd, timeout=settings().remote_timeout)
+                       stage_out_dir=wd, timeout=settings().remote_timeout, dry_run=dry_run)
     else:
         # run_local executes on this machine, so absolute local paths are correct.
         argv = [str(binary), "--bfile", str(wd / plink)]
-        r = run_local(argv, cwd=wd, timeout=settings().local_timeout)
+        r = run_local(argv, cwd=wd, timeout=settings().local_timeout, dry_run=dry_run)
+    if dry_run:
+        return {"dry_run": [r.stdout], "outputs": []}
     outputs = ["relatedness.out"]
     record(wd, "run_relatedness", {"plink": plink, "heavy": heavy}, [bed, bim, fam], [wd / o for o in outputs], 0)
     return {"outputs": outputs}
