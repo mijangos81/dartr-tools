@@ -1,4 +1,4 @@
-import re
+import os, re
 from ..session import workdir
 from ..sandbox import resolve_input, bounded
 from ..registry import resolve
@@ -11,6 +11,8 @@ _CV = re.compile(r"CV error \(K=(\d+)\):\s*([0-9.]+)")
 def run_admixture(session_id: str, plink: str, k_min: int = 2, k_max: int = 6,
                   heavy: bool = False, snp_threshold: int = 200_000, dry_run: bool = False) -> dict:
     """Run ADMIXTURE with cross-validation across a K range on a PLINK bfile prefix."""
+    if os.sep in plink or "/" in plink:
+        raise ValueError(f"plink prefix must be a bare name, got {plink!r}")
     wd = workdir(session_id)
     bounded(k_min, 1, 20, "k_min"); bounded(k_max, k_min, 20, "k_max")
     # Sandbox-validate all three PLINK files (not just .bed) so a path escape

@@ -32,6 +32,18 @@ Add to the `mcp` block in `opencode.json` or `openscience.json` (same command/ar
 }
 ```
 
+## Confirm gate
+
+The server exposes `tools.EXPENSIVE = {run_admixture, run_relatedness}` — the set of
+tools that shell out to potentially long-running external binaries (and may route to
+the remote `luism01` VM). Hosts SHOULD require explicit user confirmation before
+invoking any tool in this set, and before any tool call that would overwrite an
+existing output file.
+
+This confirmation gate is currently a **host-side responsibility**: the server does
+not itself block or prompt for these calls, it only advertises which tools warrant
+a confirmation step via `tools.EXPENSIVE`.
+
 ## Environment variables
 
 The server reads the following environment variables:

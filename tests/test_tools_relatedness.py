@@ -18,5 +18,13 @@ def test_relatedness_local(monkeypatch, tmp_path):
 
 def test_relatedness_rejects_path_escape(monkeypatch, tmp_path):
     monkeypatch.setenv("DARTR_WORK_ROOT", str(tmp_path / "work"))
-    with pytest.raises(sandbox.SandboxError):
+    # "../evil" contains a path separator, so it's now rejected eagerly by the
+    # bare-name guard (ValueError) before it would otherwise reach
+    # resolve_input's SandboxError.
+    with pytest.raises(ValueError):
         relatedness.run_relatedness("s", "../evil")
+
+def test_relatedness_rejects_plink_prefix_with_separator(monkeypatch, tmp_path):
+    monkeypatch.setenv("DARTR_WORK_ROOT", str(tmp_path / "work"))
+    with pytest.raises(ValueError, match="bare name"):
+        relatedness.run_relatedness("s", "sub/in")

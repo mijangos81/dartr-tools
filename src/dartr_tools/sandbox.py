@@ -1,5 +1,8 @@
+import re
 from pathlib import Path
 from .config import settings
+
+_SAFE_BASENAME = re.compile(r"^[A-Za-z0-9._-]+$")
 
 class SandboxError(Exception):
     pass
@@ -33,6 +36,8 @@ def resolve_output(path: str, workdir: Path) -> Path:
         raise SandboxError(f"cannot resolve path: {path}") from e
     if not (p == root or p.is_relative_to(root)):
         raise SandboxError(f"output path must be inside the session workdir: {path}")
+    if not _SAFE_BASENAME.match(p.name):
+        raise SandboxError(f"output filename contains disallowed characters: {p.name!r}")
     p.parent.mkdir(parents=True, exist_ok=True)
     return p
 

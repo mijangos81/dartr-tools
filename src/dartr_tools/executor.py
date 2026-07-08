@@ -27,6 +27,8 @@ def run_local(argv: list[str], cwd: Path, timeout: int | None = None, dry_run: b
         p = subprocess.run(argv, cwd=cwd, env=_scrubbed_env(), capture_output=True, text=True, timeout=timeout)
     except subprocess.TimeoutExpired as e:
         raise ExecError(Result(argv, 124, e.stdout or "", f"timeout after {timeout}s", time.monotonic() - start))
+    except FileNotFoundError:
+        raise ExecError(Result(argv, 127, "", f"executable not found: {argv[0]}", 0.0))
     res = Result(argv, p.returncode, p.stdout, p.stderr, time.monotonic() - start)
     if p.returncode != 0:
         raise ExecError(res)
@@ -42,9 +44,14 @@ def run_remote(argv: list[str], remote_cwd: str, host: str, stage_in: list[Path]
     start = time.monotonic()
     # remote_cwd must exist before rsync can stage files into it; the mkdir embedded
     # in remote_cmd above only runs once the ssh job itself executes, which is too late.
-    subprocess.run(["ssh", host, f"mkdir -p {shlex.quote(remote_cwd)}"], check=True, env=_scrubbed_env())
-    for f in stage_in:
-        subprocess.run(["rsync", "-az", str(f), f"{host}:{remote_cwd}/"], check=True, env=_scrubbed_env())
+    try:
+        subprocess.run(["ssh", host, f"mkdir -p {shlex.quote(remote_cwd)}"], check=True, env=_scrubbed_env())
+        for f in stage_in:
+            subprocess.run(["rsync", "-az", str(f), f"{host}:{remote_cwd}/"], check=True, env=_scrubbed_env())
+    except subprocess.CalledProcessError as e:
+        raise ExecError(Result(ssh, e.returncode, e.stdout or "",
+                                f"stage-in failed: {' '.join(e.cmd)}: {e.stderr or ''}",
+                                time.monotonic() - start))
     try:
         p = subprocess.run(ssh, env=_scrubbed_env(), capture_output=True, text=True, timeout=timeout)
     except subprocess.TimeoutExpired as e:

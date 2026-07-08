@@ -35,6 +35,11 @@ def test_output_must_be_in_workdir(wd):
     with pytest.raises(sandbox.SandboxError):
         sandbox.resolve_output("/tmp/evil", wd)
 
+def test_output_rejects_bad_basename(wd):
+    with pytest.raises(sandbox.SandboxError):
+        sandbox.resolve_output("x;rm -rf.vcf", wd)
+    assert sandbox.resolve_output("out.vcf", wd).is_relative_to(wd.resolve())
+
 def test_bounded():
     assert sandbox.bounded(5, 1, 20, "K") == 5
     with pytest.raises(sandbox.SandboxError):

@@ -12,12 +12,14 @@ outdir <- req$workdir
 # write progress text to stdout via cat()/print() even when verbose = 0 is passed.
 # Divert stdout to a throwaway sink for the duration of the call so that only the
 # final JSON (emitted after sink() is lifted) reaches the parent process's stdout.
-.rbridge_sink <- file(tempfile("rbridge-sink-"), open = "wt")
+.rbridge_sink_path <- tempfile("rbridge-sink-")
+.rbridge_sink <- file(.rbridge_sink_path, open = "wt")
 sink(.rbridge_sink)
 
 emit <- function(outputs) {
   sink()                 # restore real stdout (chatter no longer matters — see below)
   close(.rbridge_sink)
+  unlink(.rbridge_sink_path)  # the sink is a throwaway diversion; don't let it accumulate on disk
   # I() (AsIs) forces `outputs` to serialize as a JSON array even when it has
   # length 1 — plain auto_unbox = TRUE would otherwise collapse a single-output
   # branch (e.g. gl.read.vcf) down to a bare JSON string instead of ["gl.rds"].

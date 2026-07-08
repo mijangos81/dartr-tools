@@ -14,7 +14,7 @@ def call_gl(fn: str, params: dict, workdir: Path, timeout: int | None = None, dr
     reqfile.write_text(json.dumps(req))
     if dry_run:
         res = executor.run_local(["Rscript", str(_RUNNER), str(reqfile)], cwd=workdir, timeout=timeout, dry_run=dry_run)
-        return {"outputs": [], "dry_run": res.stdout}
+        return {"outputs": [], "dry_run": [res.stdout]}
     respfile = workdir / "_rresp.json"
     respfile.unlink(missing_ok=True)
     res = executor.run_local(["Rscript", str(_RUNNER), str(reqfile)], cwd=workdir, timeout=timeout, dry_run=dry_run)
